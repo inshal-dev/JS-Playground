@@ -1,0 +1,46 @@
+title: JavaScript Concepts 3D World
+description: An immersive, interactive 3D learning environment for JavaScript concepts
+author: Your Name
+email: your.email@example.com
+
+# GitHub Pages settings
+url: "https://yourusername.github.io/JS-Playground"
+baseurl: "/JS-Playground"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+permalink: pretty
+
+# Plugins
+plugins:
+  - jekyll-github-metadata
+  - jekyll-seo-tag
+  - jekyll-relative-links
+
+# Theme
+theme: jekyll-theme-primer
+
+# Collections
+collections:
+  concepts:
+    output: true
+    permalink: /concepts/:name/
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: "concepts"
+    values:
+      layout: "concept"
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
