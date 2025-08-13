@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Concepts 3D World</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            background: #000;
+        }
+        
+        #info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, rgba(26, 26, 46, 0.95), rgba(22, 33, 62, 0.95));
+            color: #e0e0e0;
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+            max-width: 450px;
+            max-height: 80vh;
+            display: none;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        #info-panel h3 {
+            margin: 0 0 15px 0;
+            color: #ffffff;
+            font-size: 1.4em;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+        
+        #info-panel pre {
+            background: rgba(0, 0, 0, 0.7);
+            color: #a8e6cf;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #00d4ff;
+            overflow-x: auto;
+            font-size: 13px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            line-height: 1.4;
+        }
+        
+        #info-panel p {
+            line-height: 1.5;
+            margin: 10px 0;
+        }
+        
+        #info-panel strong {
+            color: #ffd700;
+        }
+        
+        #info-panel em {
+            color: #00d4ff;
+            font-style: normal;
+            font-size: 0.9em;
+        }
+        
+        /* Custom scrollbar styling */
+        #info-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #info-panel::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+        }
+        
+        #info-panel::-webkit-scrollbar-thumb {
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
+            border-radius: 4px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        
+        #info-panel::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(45deg, #00b8e6, #0088b3);
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, rgba(26, 26, 46, 0.9), rgba(22, 33, 62, 0.9));
+            color: #e0e0e0;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #00d4ff;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+            backdrop-filter: blur(5px);
+        }
+        
+        #controls strong {
+            color: #ffd700;
+        }
+        
+        #topic-selector {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, rgba(26, 26, 46, 0.9), rgba(22, 33, 62, 0.9));
+            color: #e0e0e0;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #00d4ff;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+            backdrop-filter: blur(5px);
+            min-width: 250px;
+            transition: all 0.3s ease;
+        }
+        
+        #topic-selector.minimized {
+            min-width: 200px;
+            padding: 10px;
+        }
+        
+        #topic-selector.minimized h4 {
+            font-size: 0.9em;
+            margin: 0 0 8px 0;
+        }
+        
+        #topic-selector h4 {
+            margin: 0 0 10px 0;
+            color: #ffd700;
+            text-align: center;
+        }
+        
+        #topic-selector select {
+            width: 100%;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #e0e0e0;
+            border: 1px solid #00d4ff;
+            border-radius: 5px;
+            font-family: inherit;
+            margin-bottom: 10px;
+        }
+        
+        #topic-selector button {
+            width: 100%;
+            padding: 8px;
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin-bottom: 5px;
+        }
+        
+        #topic-selector button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 212, 255, 0.4);
+        }
+        
+        #topic-selector button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            pointer-events: none;
+        }
+        
+        #crosshair::before,
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            background: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.6);
+        }
+        
+        #crosshair::before {
+            width: 2px;
+            height: 20px;
+            left: 9px;
+            top: 0;
+        }
+        
+        #crosshair::after {
+            width: 20px;
+            height: 2px;
+            left: 0;
+            top: 9px;
+        }
+    </style>
+</head>
+<body>
+    <div id="crosshair"></div>
+    
+    <div id="info-panel"></div>
+    
+    <div id="controls">
+        <strong>Controls:</strong><br>
+        WASD - Move around<br>
+        Arrow Keys - Look around<br>
+        Mouse - Look around (click to lock)<br>
+        E - Interact with billboards<br>
+        ESC - Close billboard info
+    </div>
+    
+    <div id="topic-selector">
+        <h4>🎯 Topic Navigator</h4>
+        <select id="topic-dropdown">
+            <option value="">Select a JavaScript topic...</option>
+        </select>
+        <button id="navigate-btn" disabled>Show Route</button>
+        <button id="clear-route-btn" disabled>Clear Route</button>
+    </div>
+
+    <script>
+        // JavaScript concepts data
+        const jsConceptsData = {
+            "Variables & Data Types": {
+                description: "Variables are containers for storing data values. JavaScript has dynamic typing.",
+                code: `// Variable declarations
+let message = "Hello World";
+const PI = 3.14159;
+var count = 42;
+
+// Data types
+let string = "text";
+let number = 123;
+let boolean = true;
+let array = [1, 2, 3];
+let object = { name: "John", age: 30 };
+let nullValue = null;
+let undefinedValue = undefined;`,
+                details: "JavaScript variables can hold different data types without explicit declaration. Use 'let' for mutable variables, 'const' for constants, and avoid 'var' in modern code."
+            },
+            
+            "Functions": {
+                description: "Functions are reusable blocks of code that perform specific tasks.",
+                code: `// Function declaration
+function greet(name) {
+    return "Hello, " + name + "!";
+}
+
+// Arrow function
+const multiply = (a, b) => a * b;
+
+// Function expression
+const add = function(x, y) {
+    return x + y;
+};
+
+// Higher-order function
+function processArray(arr, callback) {
+    return arr.map(callback);
+}`,
+                details: "Functions are first-class objects in JavaScript. They can be assigned to variables, passed as arguments, and returned from other functions."
+            },
+            
+            "Objects & Classes": {
+                description: "Objects are collections of key-value pairs. Classes provide a template for creating objects.",
+                code: `// Car Object Example
+const car = {
+    brand: "Tesla",
+    model: "Model S",
+    year: 2024,
+    color: "Electric Blue",
+    speed: 0,
+    fuel: 100,
+    
+    start() {
+        return \`\${this.brand} \${this.model} engine started!\`;
+    },
+    
+    accelerate() {
+        this.speed += 10;
+        this.fuel -= 2;
+        return \`Speed: \${this.speed} km/h\`;
+    },
+    
+    brake() {
+        this.speed = Math.max(0, this.speed - 15);
+        return \`Speed: \${this.speed} km/h\`;
+    },
+    
+    honk() {
+        return "Honk! Honk!";
+    },
+    
+    refuel() {
+        this.fuel = 100;
+        return "Fuel tank filled!";
+    }
+};
+
+// ES6 Car Class
+class Car {
+    constructor(brand, model, year, color) {
+        this.brand = brand;
+        this.model = model;
+        this.year = year;
+        this.color = color;
+        this.speed = 0;
+        this.fuel = 100;
+    }
+    
+    start() {
+        return \`\${this.brand} \${this.model} engine started!\`;
+    }
+    
+    accelerate() {
+        this.speed += 10;
+        this.fuel -= 2;
+        return \`Speed: \${this.speed} km/h\`;
+    }
+    
+    brake() {
+        this.speed = Math.max(0, this.speed - 15);
+        return \`Speed: \${this.speed} km/h\`;
+    }
+    
+    honk() {
+        return "Honk! Honk!";
+    }
+    
+    refuel() {
+        this.fuel = 100;
+        return "Fuel tank filled!";
+    }
+}`,
+                details: "Objects can be created using literals, constructors, or classes. The 'this' keyword refers to the current object context. Each object instance maintains its own state.",
+                hasAnimation: true,
+                animationData: {
+                    type: "car",
+                    attributes: {
+                        brand: "Tesla",
+                        model: "Model S",
+                        year: 2024,
+                        color: "Electric Blue",
+                        speed: 0,
+                        fuel: 100
+                    },
+                    methods: [
+                        { name: "start()", description: "Start the engine", action: "start" },
+                        { name: "accelerate()", description: "Increase speed", action: "accelerate" },
+                        { name: "brake()", description: "Decrease speed", action: "brake" },
+                        { name: "honk()", description: "Sound the horn", action: "honk" },
+                        { name: "refuel()", description: "Add fuel", return: "Fuel tank filled!", action: "refuel" }
+                    ]
+                }
+            },
+            
+            "Arrays & Methods": {
+                description: "Arrays are ordered lists of values with powerful built-in methods.",
+                code: `const fruits = ["apple", "banana", "orange"];
+
+// Array methods
+fruits.push("grape");           // Add to end
+fruits.pop();                  // Remove from end
+fruits.unshift("mango");       // Add to beginning
+
+// Iteration methods
+fruits.forEach(fruit => console.log(fruit));
+const upperFruits = fruits.map(fruit => fruit.toUpperCase());
+const longFruits = fruits.filter(fruit => fruit.length > 5);
+const total = [1,2,3,4].reduce((sum, num) => sum + num, 0);`,
+                details: "Array methods like map, filter, reduce, and forEach enable functional programming patterns and make data manipulation elegant."
+            },
+            
+            "Async Programming": {
+                description: "Handle asynchronous operations using Promises, async/await, and callbacks.",
+                code: `// Promise
+const fetchData = () => {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            resolve("Data loaded!");
+        }, 1000);
+    });
+};
+
+// Async/Await
+async function loadUserData() {
+    try {
+        const data = await fetchData();
+        console.log(data);
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
+
+// Promise chaining
+fetchData()
+    .then(data => console.log(data))
+    .catch(error => console.error(error));`,
+                details: "Async programming prevents blocking the main thread. Modern JavaScript favors async/await over callback patterns."
+            },
+            
+            "Event Handling": {
+                description: "Respond to user interactions and system events in web applications.",
+                code: `// DOM Event Listeners
+document.getElementById('button').addEventListener('click', (event) => {
+    console.log('Button clicked!');
+    event.preventDefault();
+});
+
+// Event delegation
+document.addEventListener('click', (event) => {
+    if (event.target.matches('.dynamic-button')) {
+        console.log('Dynamic button clicked');
+    }
+});
+
+// Custom events
+const customEvent = new CustomEvent('myEvent', {
+    detail: { message: 'Hello!' }
+});
+document.dispatchEvent(customEvent);`,
+                details: "Event handling enables interactive web applications. Use event delegation for dynamic content and custom events for component communication."
+            }
+        };
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0x87CEEB, 80, 300);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x87CEEB);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(50, 100, 50);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
+
+        // Ground
+        const groundGeometry = new THREE.PlaneGeometry(500, 500);
+        const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x90EE90 });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Global variables
+        const billboards = [];
+        const roads = [];
+        const roadMarkers = [];
+        let activeRoute = null;
+        
+        // Car 3D model and animation
+        let carModel = null;
+        let carAnimationState = {
+            speed: 0,
+            fuel: 100,
+            isRunning: false,
+            position: new THREE.Vector3(0, 0, 0),
+            rotation: 0
+        };
+
+        function createBillboard(concept, index) {
+            const group = new THREE.Group();
+            
+            // Billboard post
+            const postGeometry = new THREE.CylinderGeometry(0.3, 0.4, 12);
+            const postMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+            const post = new THREE.Mesh(postGeometry, postMaterial);
+            post.position.y = 6;
+            post.castShadow = true;
+            group.add(post);
+
+            // Billboard board
+            const boardGeometry = new THREE.PlaneGeometry(16, 10);
+            const boardMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x2a2a4a,
+                transparent: true,
+                opacity: 0.95
+            });
+            const board = new THREE.Mesh(boardGeometry, boardMaterial);
+            board.position.y = 11;
+            board.position.z = 0.1;
+            group.add(board);
+
+            // Create text texture
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 768;
+            const context = canvas.getContext('2d');
+            
+            // Background with gradient
+            const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#1a1a2e');
+            gradient.addColorStop(1, '#16213e');
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Border with glow effect
+            context.strokeStyle = '#00d4ff';
+            context.lineWidth = 8;
+            context.shadowColor = '#00d4ff';
+            context.shadowBlur = 15;
+            context.strokeRect(16, 16, canvas.width - 32, canvas.height - 32);
+            context.shadowBlur = 0;
+            
+            // Title with shadow
+            context.fillStyle = '#ffffff';
+            context.font = 'bold 48px Arial, sans-serif';
+            context.textAlign = 'center';
+            context.shadowColor = '#000000';
+            context.shadowOffsetX = 3;
+            context.shadowOffsetY = 3;
+            context.shadowBlur = 6;
+            context.fillText(concept, canvas.width / 2, 120);
+            
+            // Reset shadow
+            context.shadowOffsetX = 0;
+            context.shadowOffsetY = 0;
+            context.shadowBlur = 0;
+            
+            // Description
+            context.fillStyle = '#e0e0e0';
+            context.font = '28px Arial, sans-serif';
+            const description = jsConceptsData[concept].description;
+            wrapText(context, description, canvas.width / 2, 200, canvas.width - 100, 40);
+            
+            // Interactive hint
+            context.fillStyle = '#ffd700';
+            context.font = 'bold 24px Arial, sans-serif';
+            context.fillText('Press E to interact', canvas.width / 2, canvas.height - 60);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const textMaterial = new THREE.MeshLambertMaterial({ 
+                map: texture,
+                transparent: true
+            });
+            const textMesh = new THREE.Mesh(boardGeometry, textMaterial);
+            textMesh.position.y = 11;
+            textMesh.position.z = 0.2;
+            group.add(textMesh);
+
+            // Dynamic positioning based on road-level layout
+            const positions = [
+                { x: 0, z: 60 },      // North
+                { x: 50, z: 40 },     // Northeast  
+                { x: 70, z: 0 },      // East
+                { x: 50, z: -40 },    // Southeast
+                { x: 0, z: -60 },     // South
+                { x: -50, z: -40 },   // Southwest
+                { x: -70, z: 0 },     // West
+                { x: -50, z: 40 }     // Northwest
+            ];
+            
+            if (index < positions.length) {
+                group.position.set(positions[index].x, 0, positions[index].z);
+            } else {
+                // Fallback for additional concepts
+                const angle = (index / concepts.length) * Math.PI * 2;
+                const radius = 60 + Math.floor(index / 8) * 30;
+                group.position.x = Math.cos(angle) * radius;
+                group.position.z = Math.sin(angle) * radius;
+            }
+
+            return {
+                group: group,
+                concept: concept,
+                data: jsConceptsData[concept]
+            };
+        }
+
+        function wrapText(context, text, x, y, maxWidth, lineHeight) {
+            const words = text.split(' ');
+            let line = '';
+            let currentY = y;
+
+            for (let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                const metrics = context.measureText(testLine);
+                const testWidth = metrics.width;
+                
+                if (testWidth > maxWidth && n > 0) {
+                    context.fillText(line, x, currentY);
+                    line = words[n] + ' ';
+                    currentY += lineHeight;
+                } else {
+                    line = testLine;
+                }
+            }
+            context.fillText(line, x, currentY);
+        }
+
+        function createRoadSystem() {
+            // Central hub (larger and more prominent)
+            const hubRadius = 20;
+            const hubGeometry = new THREE.CylinderGeometry(hubRadius, hubRadius, 0.3);
+            const hubMaterial = new THREE.MeshLambertMaterial({ color: 0x444444 });
+            const hub = new THREE.Mesh(hubGeometry, hubMaterial);
+            hub.position.y = 0.15;
+            hub.receiveShadow = true;
+            scene.add(hub);
+
+            // Create main roads from hub in 8 directions
+            const roadDirections = [
+                { x: 0, z: 1 },      // North
+                { x: 0.7, z: 0.7 },  // Northeast  
+                { x: 1, z: 0 },      // East
+                { x: 0.7, z: -0.7 }, // Southeast
+                { x: 0, z: -1 },     // South
+                { x: -0.7, z: -0.7 },// Southwest
+                { x: -1, z: 0 },     // West
+                { x: -0.7, z: 0.7 }  // Northwest
+            ];
+
+            // Create roads to each billboard
+            billboards.forEach((billboard, index) => {
+                const start = new THREE.Vector3(0, 0.16, 0);
+                const end = new THREE.Vector3(billboard.group.position.x, 0.16, billboard.group.position.z);
+                
+                const roadSegments = createRoad(start, end);
+                roads.push({
+                    segments: roadSegments,
+                    billboard: billboard,
+                    concept: billboard.concept
+                });
+
+                // Create route marker
+                const markerGeometry = new THREE.CylinderGeometry(2.5, 2.5, 0.6);
+                const markerMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0x00d4ff,
+                    transparent: true,
+                    opacity: 0
+                });
+                const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+                marker.position.copy(end);
+                marker.position.y = 0.3;
+                scene.add(marker);
+                
+                roadMarkers.push({
+                    marker: marker,
+                    concept: billboard.concept
+                });
+            });
+        }
+
+        function createRoad(start, end) {
+            const roadSegments = [];
+            const distance = start.distanceTo(end);
+            const segments = Math.ceil(distance / 6);
+            
+            for (let i = 0; i < segments; i++) {
+                const progress = i / segments;
+                const nextProgress = (i + 1) / segments;
+                
+                const segmentStart = start.clone().lerp(end, progress);
+                const segmentEnd = start.clone().lerp(end, nextProgress);
+                
+                const segmentLength = segmentStart.distanceTo(segmentEnd);
+                const segmentGeometry = new THREE.PlaneGeometry(4, segmentLength);
+                const segmentMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0x555555,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                
+                const segment = new THREE.Mesh(segmentGeometry, segmentMaterial);
+                
+                const midPoint = segmentStart.clone().lerp(segmentEnd, 0.5);
+                segment.position.copy(midPoint);
+                segment.rotation.x = -Math.PI / 2;
+                
+                const direction = segmentEnd.clone().sub(segmentStart).normalize();
+                const angle = Math.atan2(direction.x, direction.z);
+                segment.rotation.z = angle;
+                
+                segment.receiveShadow = true;
+                scene.add(segment);
+                roadSegments.push(segment);
+            }
+            
+            return roadSegments;
+        }
+
+        // Create billboards first
+        const concepts = Object.keys(jsConceptsData);
+        concepts.forEach((concept, index) => {
+            const billboard = createBillboard(concept, index);
+            scene.add(billboard.group);
+            billboards.push(billboard);
+        });
+
+        // Then create road system
+        createRoadSystem();
+
+        // Initialize topic selector
+        const topicDropdown = document.getElementById('topic-dropdown');
+        const navigateBtn = document.getElementById('navigate-btn');
+        const clearRouteBtn = document.getElementById('clear-route-btn');
+
+        // Populate dropdown
+        concepts.forEach(concept => {
+            const option = document.createElement('option');
+            option.value = concept;
+            option.textContent = concept;
+            topicDropdown.appendChild(option);
+        });
+
+        // Route functions
+        function highlightRoute(targetConcept) {
+            clearRoute();
+            
+            const targetRoad = roads.find(road => road.concept === targetConcept);
+            if (targetRoad) {
+                targetRoad.segments.forEach(segment => {
+                    segment.material.color.setHex(0x00ff00);
+                    segment.material.opacity = 1;
+                    segment.material.emissive.setHex(0x003300);
+                });
+            }
+
+            const targetMarker = roadMarkers.find(m => m.concept === targetConcept);
+            if (targetMarker) {
+                targetMarker.marker.material.opacity = 0.8;
+                targetMarker.marker.material.emissive.setHex(0x00d4ff);
+                
+                activeRoute = {
+                    marker: targetMarker.marker,
+                    road: targetRoad,
+                    startTime: Date.now()
+                };
+            }
+
+            clearRouteBtn.disabled = false;
+        }
+
+        function clearRoute() {
+            roads.forEach(road => {
+                road.segments.forEach(segment => {
+                    segment.material.color.setHex(0x444444);
+                    segment.material.opacity = 0.8;
+                    segment.material.emissive.setHex(0x000000);
+                });
+            });
+
+            roadMarkers.forEach(marker => {
+                marker.marker.material.opacity = 0;
+                marker.marker.material.emissive.setHex(0x000000);
+            });
+
+            activeRoute = null;
+            clearRouteBtn.disabled = true;
+        }
+
+        // Event listeners
+        topicDropdown.addEventListener('change', (e) => {
+            navigateBtn.disabled = !e.target.value;
+            
+            // Toggle minimized state
+            const selector = document.getElementById('topic-selector');
+            if (e.target.value) {
+                selector.classList.add('minimized');
+            } else {
+                selector.classList.remove('minimized');
+            }
+        });
+
+        navigateBtn.addEventListener('click', () => {
+            const selectedTopic = topicDropdown.value;
+            if (selectedTopic) {
+                highlightRoute(selectedTopic);
+            }
+        });
+
+        clearRouteBtn.addEventListener('click', () => {
+            clearRoute();
+            topicDropdown.value = '';
+            navigateBtn.disabled = true;
+            document.getElementById('topic-selector').classList.remove('minimized');
+        });
+
+        // Camera controls
+        camera.position.set(0, 5, 10);
+        let yaw = 0;
+        let pitch = 0;
+        
+        // Movement
+        const moveSpeed = 0.5;
+        const keys = {};
+        
+        document.addEventListener('keydown', (event) => {
+            keys[event.code] = true;
+            
+            if (event.code === 'KeyE') {
+                checkBillboardInteraction();
+            }
+            
+            if (event.code === 'Escape') {
+                closeBillboardInfo();
+            }
+        });
+        
+        document.addEventListener('keyup', (event) => {
+            keys[event.code] = false;
+        });
+
+        // Mouse controls
+        let isPointerLocked = false;
+        
+        renderer.domElement.addEventListener('click', () => {
+            renderer.domElement.requestPointerLock();
+        });
+        
+        document.addEventListener('pointerlockchange', () => {
+            isPointerLocked = document.pointerLockElement === renderer.domElement;
+        });
+        
+        document.addEventListener('mousemove', (event) => {
+            if (isPointerLocked) {
+                yaw -= event.movementX * 0.002;
+                pitch -= event.movementY * 0.002;
+                pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
+            }
+        });
+
+        function updateMovement() {
+            const direction = new THREE.Vector3();
+            
+            // Movement controls (WASD)
+            if (keys['KeyW']) direction.z -= 1;
+            if (keys['KeyS']) direction.z += 1;
+            if (keys['KeyA']) direction.x -= 1;
+            if (keys['KeyD']) direction.x += 1;
+            
+            // Look controls (Arrow Keys)
+            const lookSpeed = 0.03;
+            if (keys['ArrowLeft']) yaw += lookSpeed;
+            if (keys['ArrowRight']) yaw -= lookSpeed;
+            if (keys['ArrowUp']) {
+                pitch += lookSpeed;
+                pitch = Math.min(Math.PI/2, pitch);
+            }
+            if (keys['ArrowDown']) {
+                pitch -= lookSpeed;
+                pitch = Math.max(-Math.PI/2, pitch);
+            }
+            
+            if (direction.length() > 0) {
+                direction.normalize();
+                direction.multiplyScalar(moveSpeed);
+                
+                const euler = new THREE.Euler(0, yaw, 0, 'YXZ');
+                direction.applyEuler(euler);
+                
+                camera.position.add(direction);
+            }
+            
+            camera.rotation.set(pitch, yaw, 0, 'YXZ');
+        }
+
+        function checkBillboardInteraction() {
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            
+            const intersects = raycaster.intersectObjects(scene.children, true);
+            
+            for (let intersect of intersects) {
+                for (let billboard of billboards) {
+                    if (billboard.group.children.includes(intersect.object)) {
+                        const distance = camera.position.distanceTo(billboard.group.position);
+                        if (distance < 20) {
+                            showConceptInfo(billboard.data, billboard.concept);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        function showConceptInfo(data, concept) {
+            const panel = document.getElementById('info-panel');
+            
+            if (concept === "Objects & Classes") {
+                console.log("Showing car animation panel for Objects & Classes");
+                // Show car animation panel
+                panel.innerHTML = `
+                    <h3>${concept}</h3>
+                    <p><strong>Description:</strong> ${data.description}</p>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 20px; margin: 20px 0;">
+                        <div >
+                            <h4>📝 Code Example</h4>
+                            <pre style="max-height: 300px; overflow-y: auto;"><code>${data.code}</code></pre>
+                        </div>
+                        
+                        <div style="flex: 1 z-index: 1000;">
+                            <h4>🎮 Interactive Demo</h4>
+                            <div id="car-info-panel" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                <h4>🚗 Car Object State</h4>
+                                <div class="car-attributes">
+                                    <p><strong>Speed:</strong> ${carAnimationState ? carAnimationState.speed : 0} km/h</p>
+                                    <p><strong>Fuel:</strong> ${carAnimationState ? carAnimationState.fuel : 100}%</p>
+                                    <p><strong>Status:</strong> ${carAnimationState && carAnimationState.isRunning ? 'Running' : 'Stopped'}</p>
+                                    <p><strong>Position:</strong> X: ${carAnimationState ? carAnimationState.position.x.toFixed(1) : '0.0'}, Z: ${carAnimationState ? carAnimationState.position.z.toFixed(1) : '0.0'}</p>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <button onclick="window.animateCar('start')" style="background: #00d4ff; color: white; border: none; padding: 8px; border-radius: 5px; cursor: pointer;">🚀 Start</button>
+                                <button onclick="window.animateCar('accelerate')" style="background: #00ff00; color: white; border: none; padding: 8px; border-radius: 5px; cursor: pointer;">⚡ Accelerate</button>
+                                <button onclick="window.animateCar('brake')" style="background: #ff6600; color: white; border: none; padding: 8px; border-radius: 5px; cursor: pointer;">🛑 Brake</button>
+                                <button onclick="window.animateCar('honk')" style="background: #ff0000; color: white; border: none; padding: 8px; border-radius: 5px; cursor: pointer;">🔊 Honk</button>
+                                <button onclick="window.animateCar('refuel')" style="background: #00ff00; color: white; border: none; padding: 8px; border-radius: 5px; cursor: pointer; grid-column: span 2;">⛽ Refuel</button>
+                            </div>
+                            
+                            <p style="margin-top: 15px; font-size: 0.9em; color: #ffd700;">
+                                <strong>💡 Watch the 3D car in the world!</strong><br>
+                                The car demonstrates object properties and methods in action.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <p><strong>Details:</strong> ${data.details}</p>
+                    <p><em>Click anywhere to close</em></p>
+                `;
+                
+                // Create and add car to scene if not exists
+                if (!carModel) {
+                    carModel = createCar();
+                    scene.add(carModel);
+                }
+                
+                // Position car near the billboard
+                const billboard = billboards.find(b => b.concept === concept);
+                if (billboard) {
+                    carModel.position.copy(billboard.group.position);
+                    carModel.position.x += 8;
+                    carModel.position.y = 0;
+                    carAnimationState.position.copy(carModel.position);
+                }
+                
+            } else {
+                // Show regular info panel
+                panel.innerHTML = `
+                    <h3>${concept}</h3>
+                    <p><strong>Description:</strong> ${data.description}</p>
+                    <pre><code>${data.code}</code></pre>
+                    <p><strong>Details:</strong> ${data.details}</p>
+                    <p><em>Click anywhere to close</em></p>
+                `;
+            }
+            
+            panel.style.display = 'block';
+            
+            const closePanel = () => {
+                closeBillboardInfo();
+                document.removeEventListener('click', closePanel);
+            };
+            
+            setTimeout(() => {
+                document.addEventListener('click', closePanel);
+            }, 100);
+        }
+
+        function closeBillboardInfo() {
+            const panel = document.getElementById('info-panel');
+            panel.style.display = 'none';
+        }
+
+        function createCar() {
+            const carGroup = new THREE.Group();
+            
+            // Car body
+            const bodyGeometry = new THREE.BoxGeometry(4, 1.5, 8);
+            const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x0066cc });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.75;
+            body.castShadow = true;
+            carGroup.add(body);
+            
+            // Car roof
+            const roofGeometry = new THREE.BoxGeometry(3.5, 1, 4);
+            const roofMaterial = new THREE.MeshLambertMaterial({ color: 0x0066cc });
+            const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+            roof.position.y = 2;
+            roof.position.z = -1;
+            roof.castShadow = true;
+            carGroup.add(roof);
+            
+            // Wheels
+            const wheelGeometry = new THREE.CylinderGeometry(0.8, 0.8, 0.5);
+            const wheelMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
+            
+            const wheelPositions = [
+                { x: -1.5, y: 0.8, z: 2.5 },
+                { x: 1.5, y: 0.8, z: 2.5 },
+                { x: -1.5, y: 0.8, z: -2.5 },
+                { x: 1.5, y: 0.8, z: -2.5 }
+            ];
+            
+            wheelPositions.forEach(pos => {
+                const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+                wheel.position.set(pos.x, pos.y, pos.z);
+                wheel.rotation.z = Math.PI / 2;
+                wheel.castShadow = true;
+                carGroup.add(wheel);
+            });
+            
+            // Headlights
+            const headlightGeometry = new THREE.SphereGeometry(0.3);
+            const headlightMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0xffffcc,
+                emissive: 0xffffcc,
+                emissiveIntensity: 0.2
+            });
+            
+            const leftHeadlight = new THREE.Mesh(headlightGeometry, headlightMaterial);
+            leftHeadlight.position.set(-1.2, 1.2, 4.2);
+            carGroup.add(leftHeadlight);
+            
+            const rightHeadlight = new THREE.Mesh(headlightGeometry, headlightMaterial);
+            rightHeadlight.position.set(1.2, 1.2, 4.2);
+            carGroup.add(rightHeadlight);
+            
+            // Windows
+            const windowGeometry = new THREE.PlaneGeometry(3, 1);
+            const windowMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x87ceeb,
+                transparent: true,
+                opacity: 0.7
+            });
+            
+            const windshield = new THREE.Mesh(windowGeometry, windowMaterial);
+            windshield.position.set(0, 1.5, 2.5);
+            windshield.rotation.x = Math.PI / 6;
+            carGroup.add(windshield);
+            
+            const rearWindow = new THREE.Mesh(windowGeometry, windowMaterial);
+            rearWindow.position.set(0, 1.5, -2.5);
+            rearWindow.rotation.x = -Math.PI / 6;
+            carGroup.add(rearWindow);
+            
+            carGroup.position.copy(carAnimationState.position);
+            carGroup.scale.set(0.8, 0.8, 0.8);
+            
+            return carGroup;
+        }
+
+        function animateCar(action) {
+            if (!carModel) return;
+            
+            switch(action) {
+                case 'start':
+                    carAnimationState.isRunning = true;
+                    carModel.children.forEach(child => {
+                        if (child.material && child.material.emissive) {
+                            child.material.emissive.setHex(0x00ff00);
+                            child.material.emissiveIntensity = 0.3;
+                        }
+                    });
+                    break;
+                    
+                case 'accelerate':
+                    if (carAnimationState.isRunning && carAnimationState.fuel > 0) {
+                        carAnimationState.speed += 10;
+                        carAnimationState.fuel -= 2;
+                        carAnimationState.fuel = Math.max(0, carAnimationState.fuel);
+                        
+                        // Move car forward
+                        const direction = new THREE.Vector3(0, 0, -1);
+                        direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), carAnimationState.rotation);
+                        carModel.position.add(direction.multiplyScalar(0.5));
+                        carAnimationState.position.copy(carModel.position);
+                        
+                        // Add speed lines effect
+                        addSpeedLines();
+                    }
+                    break;
+                    
+                case 'brake':
+                    carAnimationState.speed = Math.max(0, carAnimationState.speed - 15);
+                    break;
+                    
+                case 'honk':
+                    // Add horn sound effect (visual)
+                    const hornEffect = new THREE.PointLight(0xff0000, 1, 10);
+                    hornEffect.position.copy(carModel.position);
+                    hornEffect.position.y += 2;
+                    scene.add(hornEffect);
+                    
+                    setTimeout(() => {
+                        scene.remove(hornEffect);
+                    }, 500);
+                    break;
+                    
+                case 'refuel':
+                    carAnimationState.fuel = 100;
+                    // Add refuel effect
+                    const refuelEffect = new THREE.PointLight(0x00ff00, 1, 8);
+                    refuelEffect.position.copy(carModel.position);
+                    refuelEffect.position.y += 1;
+                    scene.add(refuelEffect);
+                    
+                    setTimeout(() => {
+                        scene.remove(refuelEffect);
+                    }, 1000);
+                    break;
+            }
+            
+            updateCarDisplay();
+        }
+
+        function addSpeedLines() {
+            for (let i = 0; i < 5; i++) {
+                const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(0, 0, 2)
+                ]);
+                const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00ffff });
+                const line = new THREE.Line(lineGeometry, lineMaterial);
+                
+                line.position.copy(carModel.position);
+                line.position.x += (Math.random() - 0.5) * 4;
+                line.position.z += (Math.random() - 0.5) * 4;
+                line.position.y = 0.5;
+                
+                scene.add(line);
+                
+                setTimeout(() => {
+                    scene.remove(line);
+                }, 200);
+            }
+        }
+
+        function updateCarDisplay() {
+            const carInfoPanel = document.getElementById('car-info-panel');
+            if (carInfoPanel) {
+                carInfoPanel.innerHTML = `
+                    <h4>🚗 Car Object State</h4>
+                    <div class="car-attributes">
+                        <p><strong>Speed:</strong> ${carAnimationState.speed} km/h</p>
+                        <p><strong>Fuel:</strong> ${carAnimationState.fuel}%</p>
+                        <p><strong>Status:</strong> ${carAnimationState.isRunning ? 'Running' : 'Stopped'}</p>
+                        <p><strong>Position:</strong> X: ${carAnimationState.position.x.toFixed(1)}, Z: ${carAnimationState.position.z.toFixed(1)}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Add trees
+        function createTrees() {
+            for (let i = 0; i < 20; i++) {
+                const treeGroup = new THREE.Group();
+                
+                // Trunk
+                const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.8, 8);
+                const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x4a4a2a });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                trunk.position.y = 4;
+                trunk.castShadow = true;
+                treeGroup.add(trunk);
+                
+                // Main canopy
+                const canopyGeometry = new THREE.SphereGeometry(4);
+                const canopyMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
+                const canopy = new THREE.Mesh(canopyGeometry, canopyMaterial);
+                canopy.position.y = 9;
+                canopy.castShadow = true;
+                treeGroup.add(canopy);
+                
+                // Position away from billboards and roads
+                let validPosition = false;
+                let attempts = 0;
+                while (!validPosition && attempts < 50) {
+                    treeGroup.position.x = (Math.random() - 0.5) * 200;
+                    treeGroup.position.z = (Math.random() - 0.5) * 200;
+                    
+                    validPosition = true;
+                    
+                    // Check distance from billboards
+                    for (let billboard of billboards) {
+                        if (treeGroup.position.distanceTo(billboard.group.position) < 20) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                    
+                    // Check distance from center
+                    if (treeGroup.position.distanceTo(new THREE.Vector3(0, 0, 0)) < 25) {
+                        validPosition = false;
+                    }
+                    
+                    attempts++;
+                }
+                
+                if (validPosition) {
+                    scene.add(treeGroup);
+                }
+            }
+        }
+
+        createTrees();
+
+        // Make animateCar globally accessible
+        window.animateCar = animateCar;
+        window.carAnimationState = carAnimationState;
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            updateMovement();
+            
+            // Animate route markers
+            if (activeRoute) {
+                const elapsed = (Date.now() - activeRoute.startTime) / 1000;
+                const pulse = Math.sin(elapsed * 3) * 0.3 + 0.5;
+                activeRoute.marker.material.opacity = 0.5 + pulse * 0.3;
+                activeRoute.marker.position.y = 0.25 + pulse * 0.5;
+                
+                if (activeRoute.road) {
+                    activeRoute.road.segments.forEach(segment => {
+                        segment.material.emissive.setRGB(0, pulse * 0.2, 0);
+                    });
+                }
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
